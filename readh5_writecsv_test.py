@@ -18,7 +18,6 @@ stokes = h5["/SUB_ARRAY_POINTING_000/BEAM_000/STOKES_0"]
 
 data_part = stokes[:10,:]
 
-
 np.savetxt("tempdata/foo.csv", data_part, delimiter=",")
 
 data_part_string = open("tempdata/foo.csv", "r").read()
@@ -39,11 +38,6 @@ client = docker.from_env()
 spark_master = client.containers.get("spark-master")
 spark_worker_1 = client.containers.get("spark-worker-1")
 spark_worker_2 = client.containers.get("spark-worker-2")
-
-#Optional, start containers:
-spark_master.start()
-spark_worker_1.start()
-spark_worker_2.start()
 
 tarstream.seek(0)
 spark_master.put_archive("/opt/spark-data", tarstream) #will put data in all containers due to simulated shared storage
