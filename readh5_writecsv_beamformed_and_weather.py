@@ -11,7 +11,7 @@ from dateutil.parser import parse
 from io import BytesIO
 #%% Helper functions.
 def write_beamformed(data_part_df):
-    data_part_string = data_part_df.to_csv(sep=",")
+    data_part_string = data_part_df.to_csv(sep=",", date_format="%Y-%m-%d %H:%M:%S", index=False)
          
     tarstream = BytesIO()
     tar = tarfile.TarFile(fileobj=tarstream, mode='w')
@@ -34,7 +34,7 @@ def fetch_and_write_weather(last_timestamp, last_hourly_measurement):
     knmi_df["timestamp"] = [(parse(date) + timedelta(hours=int(hour))) for date, hour in zip(knmi_df["YYYYMMDD"], knmi_df["HH"])]
     knmi_df.drop(["STN", "YYYYMMDD", "HH"], axis=1)
     
-    weather_string = knmi_df.to_csv(sep=",")
+    weather_string = knmi_df.to_csv(sep=",", date_format="%Y-%m-%d %H:%M:%S", index=False)
     
     tarstream = BytesIO()
     tar = tarfile.TarFile(fileobj=tarstream, mode='w')
@@ -94,7 +94,7 @@ def read_and_write():
     #write beamformed data
     write_beamformed(data_part_df)
     
-    print("Written"+"measurement"+str(measurement_index)+"-"+str(measurement_index+index_delta))
+    print("Written measurements "+str(measurement_index)+"-"+str(measurement_index+index_delta))
     measurement_index=measurement_index+index_delta    
     
 #%% start jobs
