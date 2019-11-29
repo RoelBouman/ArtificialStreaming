@@ -25,9 +25,6 @@ if __name__ == "__main__":
     .schema(userSchema) \
     .csv("/opt/spark-data/beamformed")
 
-#  means = csvDF.select(
-#    mean(col("columnName").alias("mean"))
-#  )
   meanV1 = csvDF.groupBy().mean("V1")      
                                                      
     # Start running the query that prints the running counts to the console     
