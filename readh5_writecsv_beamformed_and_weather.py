@@ -4,12 +4,22 @@ import pandas as pd
 import tarfile
 import docker
 import time
+import re
 from knmy import knmy
 from timeloop import Timeloop
 from datetime import timedelta
 from dateutil.parser import parse
 from io import BytesIO
+
 #%% Helper functions.
+
+def to_writeable_timestamp(timestamp):
+    timestamp_string = str(timestamp)
+    
+    cleaned_timestamp_string = re.sub(r'[ :]', '-', re.sub(r'\+.*', '',timestamp_string))
+    
+    return(cleaned_timestamp_string)
+
 def write_beamformed(data_part_df):
     data_part_string = data_part_df.to_csv(sep=",", date_format="%Y-%m-%d %H:%M:%S", index=False)
          
@@ -32,14 +42,15 @@ def fetch_and_write_weather(last_timestamp, last_hourly_measurement):
     knmi_df = knmi_df.drop(knmi_df.index[0]) #drop first row, which contains a duplicate header
     
     knmi_df["timestamp"] = [(parse(date) + timedelta(hours=int(hour))) for date, hour in zip(knmi_df["YYYYMMDD"], knmi_df["HH"])]
-    knmi_df.drop(["STN", "YYYYMMDD", "HH"], axis=1)
+    knmi_df = knmi_df.drop(["STN", "YYYYMMDD", "HH"], axis=1)
     
     weather_string = knmi_df.to_csv(sep=",", date_format="%Y-%m-%d %H:%M:%S", index=False)
     
+    filename = "weather"+to_writeable_timestamp(last_hourly_measurement)+"-to-"+to_writeable_timestamp(last_timestamp)+".csv"
     tarstream = BytesIO()
     tar = tarfile.TarFile(fileobj=tarstream, mode='w')
     file_data = weather_string.encode('utf8')
-    tarinfo = tarfile.TarInfo(name="weather"+str(last_hourly_measurement)+"-"+str(last_timestamp)+".csv")
+    tarinfo = tarfile.TarInfo(name=filename)
     tarinfo.size = len(file_data)
     tarinfo.mtime = time.time()
     tar.addfile(tarinfo, BytesIO(file_data))
@@ -47,7 +58,6 @@ def fetch_and_write_weather(last_timestamp, last_hourly_measurement):
 
     tarstream.seek(0)
     spark_master.put_archive("/opt/spark-data/weather", tarstream)
-    
     
 #%% initialize variables and initialize hdf5 access and docker containers
 filename = 'L701913_SAP000_B000_S0_P000_bf.h5'
@@ -81,6 +91,7 @@ def read_and_write():
     #measurements -and- timestamp
     data_part_df = pd.DataFrame(stokes[measurement_index:(measurement_index+index_delta),:])
     data_part_df["timestamp"] = [time_start+dt for dt in [d*time_delta for d in range(measurement_index, measurement_index+index_delta)]]
+    data_part_df["hourly_timestamp"] = [(time_start+dt).replace(minute=0,second=0, microsecond=0) for dt in [d*time_delta for d in range(measurement_index, measurement_index+index_delta)]]
 
 
     #Determine if new weather data should be written
