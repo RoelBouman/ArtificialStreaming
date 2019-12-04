@@ -57,8 +57,7 @@ if __name__ == "__main__":
       """),
     "leftOuter")
 
-  # Random operation on joined data
-  #...
+  # Sample operation on joined data
   maxTimeStamp = joinedDF.groupby("beamformedtimestamp", "weathertimestamp").agg(max_("beamformedtimestamp"))                    
 
   # Start running the query that prints the running counts to the console     
