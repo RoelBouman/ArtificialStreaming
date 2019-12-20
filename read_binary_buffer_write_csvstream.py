@@ -10,6 +10,7 @@ import time
 import pandas as pd
 from astropy.time import Time as astroTime
 from datetime import timedelta
+import pickle
 
 parser = ArgumentParser("create csvstream from raw data");
 parser.add_argument('-i','--rawdata',help='rawdata file',dest="rawfile",required=True)
@@ -27,21 +28,23 @@ def write_file_to_container(docker_container,docker_folder,data_string,file_name
 
      tarstream=BytesIO()
      tar=tarfile.TarFile(fileobj=tarstream, mode='w')
-     file_data=data_string.encode('utf8')
      tarinfo=tarfile.TarInfo(name=file_name)
-     tarinfo.size=len(file_data)
+     tarinfo.size=len(data_string)
      tarinfo.mtime=time.time()
-     tar.addfile(tarinfo, BytesIO(file_data))
+     tar.addfile(tarinfo, BytesIO(data_string))
      tar.close()
 
      tarstream.seek(0)
      docker_container.put_archive(docker_folder, tarstream)
      
-def write_metadata(docker_container,docker_folder,data_part_df,starttime,endtime):
-    
+def write_metadata(docker_container,docker_folder,metadata,file_name):
+     pickled_metadata = pickle.dumps(metadata) #pickles metadata as string
+     
+     write_file_to_container(docker_container,docker_folder,pickled_metadata,file_name)
 
 def write_beamformed(docker_container,docker_folder,data_part_df,starttime,endtime):
      data_string = data_part_df.to_csv(sep=",", date_format="%Y-%m-%d %H:%M:%S", index=False)
+     data_string=data_string.encode('utf8')
      file_name="measurement"+str(np.round(starttime, 4))+"-"+str(np.round(endtime,4))+".csv"
 
      write_file_to_container(docker_container,docker_folder,data_string,file_name)
@@ -86,7 +89,7 @@ def main(argv):
     rawfile=open(args.rawfile,'rb')
     metadata = get_metadata_from_h5(h5py.File(args.rawfile.replace('.raw','.h5')))
     
-    
+    write_metadata(docker_container,args.docker_folder_metadata,metadata,args.rawfile.replace('.raw','_metadata.pickle'))
     
     stream_real_time(docker_container,args.docker_folder_data,rawfile,metadata['CHANNELS_PER_SUBBAND'],metadata[u'NOF_SUBBANDS'],metadata['freqs'],starttime=metadata['starttime'],endtime=metadata['endtime'],skipSamples=args.skip_samples,sampleSize=metadata[u'SAMPLING_TIME'],maxSamples=args.max_samples,waitTime=args.wait_time,skiptime=args.skip_time)
 
