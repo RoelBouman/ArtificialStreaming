@@ -18,8 +18,8 @@ parser.add_argument('-d','--docker_container',help='docker container',dest="dock
 parser.add_argument('-fd','--docker_folder_data',help='docker folder for beamformed data',dest="docker_folder_data",type=str,required=True)
 parser.add_argument('-fm','--docker_folder_metadata',help='docker folder for metadata',dest="docker_folder_metadata",type=str,required=True)
 parser.add_argument('-k','--skip_samples', help='number of samples to skip at the beginning',dest='skip_samples',type=int,default=0)
-parser.add_argument('-t','--skip_time', help='time sampling ratio (e.g. 25 for taking 1 in 25 samples)',dest='skip_time',type=int,default=25)
-parser.add_argument('-m','--max_samples', help='number of samples to read per streaming operation',dest='max_samples',type=int,default=10000)
+parser.add_argument('-t','--skip_time', help='time sampling ratio (e.g. 25 for taking 1 in 25 samples, samples over all read samples)',dest='skip_time',type=int,default=25)
+parser.add_argument('-m','--max_samples', help='number of samples to read per streaming operation, must be higher than skip_time',dest='max_samples',type=int,default=10000)
 parser.add_argument('-w','--wait_time', help='time to wait between read/stream operations',dest='wait_time',type=int,default=0)
 
 bytes_per_sample=4
@@ -90,6 +90,8 @@ def main(argv):
     metadata = get_metadata_from_h5(h5py.File(args.rawfile.replace('.raw','.h5')))
     
     write_metadata(docker_container,args.docker_folder_metadata,metadata,args.rawfile.replace('.raw','_metadata.pickle'))
+    
+    if(args.)
     
     stream_real_time(docker_container,args.docker_folder_data,rawfile,metadata['CHANNELS_PER_SUBBAND'],metadata[u'NOF_SUBBANDS'],metadata['freqs'],starttime=metadata['starttime'],endtime=metadata['endtime'],skipSamples=args.skip_samples,sampleSize=metadata[u'SAMPLING_TIME'],maxSamples=args.max_samples,waitTime=args.wait_time,skiptime=args.skip_time)
 
