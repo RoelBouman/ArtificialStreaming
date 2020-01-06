@@ -91,8 +91,6 @@ def main(argv):
     
     write_metadata(docker_container,args.docker_folder_metadata,metadata,args.rawfile.replace('.raw','_metadata.pickle'))
     
-    if(args.)
-    
     stream_real_time(docker_container,args.docker_folder_data,rawfile,metadata['CHANNELS_PER_SUBBAND'],metadata[u'NOF_SUBBANDS'],metadata['freqs'],starttime=metadata['starttime'],endtime=metadata['endtime'],skipSamples=args.skip_samples,sampleSize=metadata[u'SAMPLING_TIME'],maxSamples=args.max_samples,waitTime=args.wait_time,skiptime=args.skip_time)
 
 
