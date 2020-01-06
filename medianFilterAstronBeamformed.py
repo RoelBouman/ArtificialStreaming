@@ -9,6 +9,7 @@ from pyspark.sql.functions import col
 from pyspark.sql import DataFrame
 from pyspark.sql.functions import window
 from pyspark.sql.functions import expr
+from pyspark.sql.functions import hour
 
                                                                                
 if __name__ == "__main__":                                                      
@@ -33,21 +34,35 @@ if __name__ == "__main__":
     .option("sep", ",") \
     .option("header", "true") \
     .schema(beamformedSchema) \
-    .csv("/opt/spark-data/beamformed") 
+    .csv("/opt/spark-data/beamformed") \
+    .withWatermark("beamformedTimestamp", "5 seconds")
 
-  exprs = [expr('percentile_approx('+x+', 0.5)').alias('med_'+x) for x in beamformedDF.columns[:3]]
+  exprs = [expr('percentile_approx('+x+', 0.5)').alias('med_'+x) for x in beamformedDF.columns[:3]] 
 
-  medianDF = beamformedDF.withWatermark("beamformedTimestamp", "5 seconds") \
+  medianDF = beamformedDF \
     .groupBy(
-      window(beamformedDF.beamformedTimestamp, "5 seconds", "5 seconds") \
+      window("beamformedTimestamp", "5 seconds", "5 seconds") \
   ).agg(*exprs)
 
-  #df2 = beamformedDF.withColumn('norm_V1', col("V1")/col("med_V1"))
+  medianDF = medianDF.withColumn("timestamp",medianDF.window.start).withWatermark("timestamp", "5 seconds")
+   
+  test_columns = ("V1", "V2", "V3", "beamformedTimestamp")
+
+  testDF = beamformedDF.select(*test_columns)
+   
+  joinedDF = testDF.join(
+    medianDF,
+    expr("""
+      hour(beamformedTimestamp) = hour(timestamp) AND
+      beamformedTimestamp >= timestamp AND
+      beamformedTimestamp <= timestamp + interval 5 seconds
+      """),
+    "inner")
 
   # Start running the query that prints the running counts to the console     
-  query = medianDF \
+  query = joinedDF \
     .writeStream \
-    .outputMode('update') \
+    .outputMode('Append') \
     .format('console') \
     .start()                                                                
                                 
