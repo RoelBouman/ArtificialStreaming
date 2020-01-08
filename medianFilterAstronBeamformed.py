@@ -10,6 +10,7 @@ from pyspark.sql import DataFrame
 from pyspark.sql.functions import window
 from pyspark.sql.functions import expr
 from pyspark.sql.functions import hour
+from pyspark.sql.functions import date_trunc
 
                                                                                
 if __name__ == "__main__":                                                      
@@ -39,31 +40,21 @@ if __name__ == "__main__":
 
   exprs = [expr('percentile_approx('+x+', 0.5)').alias('med_'+x) for x in beamformedDF.columns[:3]] 
 
-  medianDF = beamformedDF \
-    .groupBy(
-      window("beamformedTimestamp", "5 seconds", "5 seconds") \
-  ).agg(*exprs)
-
-  medianDF = medianDF.withColumn("timestamp",medianDF.window.start).withWatermark("timestamp", "5 seconds")
-   
-  test_columns = ("V1", "V2", "V3", "beamformedTimestamp")
+  test_columns = ("V0", "V1", "V2", "beamformedTimestamp")
 
   testDF = beamformedDF.select(*test_columns)
-   
-  joinedDF = testDF.join(
-    medianDF,
-    expr("""
-      hour(beamformedTimestamp) = hour(timestamp) AND
-      beamformedTimestamp >= timestamp AND
-      beamformedTimestamp <= timestamp + interval 5 seconds
-      """),
-    "inner")
+    
+  def foreach_test_write(df, epoch_id):
+    dataDF = df.select("V0", "V1", "V2").toPandas()
 
-  # Start running the query that prints the running counts to the console     
-  query = joinedDF \
-    .writeStream \
-    .outputMode('Append') \
-    .format('console') \
-    .start()                                                                
-                                
+    median = dataDF.median()
+
+    scaledDF = dataDF.divide(dataDF.median())  
+
+    scaledDF.to_csv("/opt/spark-data/test/test" + str(epoch_id) + ".csv")
+    median.to_csv("/opt/spark-data/test/median" + str(epoch_id) + ".csv")
+  
+
+  query = testDF.writeStream.foreachBatch(foreach_test_write).start()
+              
   query.awaitTermination()                            
