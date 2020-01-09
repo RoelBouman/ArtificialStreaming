@@ -47,12 +47,13 @@ if __name__ == "__main__":
   def foreach_test_write(df, epoch_id):
     dataDF = df.select("V0", "V1", "V2").toPandas()
 
-    median = dataDF.median()
+    median = dataDF.median() #transpose to save each median in a separate column
 
-    scaledDF = dataDF.divide(dataDF.median())  
+    scaledDF = dataDF.divide(median)  
 
-    scaledDF.to_csv("/opt/spark-data/test/test" + str(epoch_id) + ".csv")
-    median.to_csv("/opt/spark-data/test/median" + str(epoch_id) + ".csv")
+    scaledDF.to_csv("/opt/spark-results/median_scaled_data/test" + str(epoch_id) + ".csv", header=True, index=False)
+    median.to_frame().T.to_csv("/opt/spark-results/medians/test" + str(epoch_id) + ".csv", header=True, index=False)
+    scaledDF.to_hdf("/opt/spark-results/median_scaled_data/test.h5", key="batch"+str(epoch_id))
   
 
   query = testDF.writeStream.foreachBatch(foreach_test_write).start()
