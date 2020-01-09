@@ -38,7 +38,7 @@ if __name__ == "__main__":
     .csv("/opt/spark-data/beamformed") \
     .withWatermark("beamformedTimestamp", "5 seconds")
 
-  exprs = [expr('percentile_approx('+x+', 0.5)').alias('med_'+x) for x in beamformedDF.columns[:3]] 
+  #exprs = [expr('percentile_approx('+x+', 0.5)').alias('med_'+x) for x in beamformedDF.columns[:3]] 
 
   test_columns = ("V0", "V1", "V2", "beamformedTimestamp")
 
