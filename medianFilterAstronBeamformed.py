@@ -20,7 +20,7 @@ if __name__ == "__main__":
     .builder \
     .appName("beamformedFiltering") \
     .getOrCreate()                                                          
-                                                                                
+                                                           
   # Create DataFrame representing the stream of CSVs
   # We will define the schema based on the metadata
   # The last 3 entries consist of a the time in second from the start of the observation, the timestamp, and the timestamp with seconds and smaller time units dropped.
@@ -52,10 +52,8 @@ if __name__ == "__main__":
     scaledDF = dataDF.divide(median)  
 
     scaledDF.to_csv("/opt/spark-results/median_scaled_data/test" + str(epoch_id) + ".csv", header=True, index=False)
-    median.to_frame().T.to_csv("/opt/spark-results/medians/test" + str(epoch_id) + ".csv", header=True, index=False)
-    scaledDF.to_hdf("/opt/spark-results/median_scaled_data/test.h5", key="batch"+str(epoch_id))
+    median.to_frame().T.to_csv("/opt/spark-results/medians/median" + str(epoch_id) + ".csv", header=True, index=False)
   
-
   query = testDF.writeStream.foreachBatch(foreach_test_write).start()
               
   query.awaitTermination()                            
