@@ -3,11 +3,12 @@ import h5py
 from argparse import ArgumentParser
 import matplotlib.pyplot as plt
 import os
+import dask.dataframe as dd
 
 parser = ArgumentParser("create dynspectrum plot from processed data");
 parser.add_argument('-r','--rawdata', nargs='+',help='rawdata file',dest="rawfile",required=True)
-parser.add_argument('-p','--processedata', nargs='+',help='processed data folder',dest="processedfolder",required=True)
-parser.add_argument('-m','--processedmedian', nargs='+',help='processed median folder',dest="medianfolder",required=True)
+parser.add_argument('-p','--processedata', nargs='+',help='processed data folder without trailing frontslash',dest="processedfolder",required=True)
+parser.add_argument('-m','--processedmedian', nargs='+',help='processed median folder without trailing frontslash',dest="medianfolder",required=True)
 parser.add_argument('-i','--vmin', help='vmin of plot',dest='vmin',type=float,default=0.5)
 parser.add_argument('-a','--vmax', help='vmax of plot',dest='vmax',type=float,default=2)
 parser.add_argument('-c','--cmap', help='matplotlib colormap',dest='cmap',default="viridis")
@@ -58,6 +59,9 @@ def main(argv):
     #Initalize list of filenames 
     scaled_data_filenames = []
     median_data_filenames = []
+    
+    all_processed_data = None
+    all_median_data = None
     while(True):
         
         all_scaled_data_filenames = os.listdir(processed_folder)
@@ -66,7 +70,33 @@ def main(argv):
         new_scaled_data_filenames = list(set(all_scaled_data_filenames) - set(scaled_data_filenames))
         new_median_data_filenames = list(set(all_median_data_filenames) - set(median_data_filenames))
         
+        #if new processed data is present
+        if(len(new_scaled_data_filenames) > 0):
+            
+            new_processed_data = dd.read_csv([processed_folder+"/"+filename for filename in new_scaled_data_filenames])
+            
+            if(all_processed_data is not None):
+                processed_data_list = [all_processed_data, new_processed_data]
+            else:
+                processed_data_list = [new_processed_data]
+                
+            all_processed_data = dd.concat(processed_data_list, axis=0)
         
+        #if new median data is present    
+        if(len(new_median_data_filenames) > 0):
+        
+            new_median_data = dd.read_csv([median_folder+"/"+filename for filename in new_median_data_filenames])
+        
+            if(all_median_data is not None):
+                median_data_list = [all_median_data, new_median_data]
+            else:
+                median_data_list = [new_median_data]
+            
+            all_median_data = dd.concat(median_data_list, axis=0)
+        
+        #tests:
+        print(all_processed_data.shape)
+        print(all_median_data.shape)
         
         scaled_data_filenames = all_scaled_data_filenames
         median_data_filenames = all_median_data_filenames
