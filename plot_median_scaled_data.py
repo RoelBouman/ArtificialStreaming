@@ -3,7 +3,7 @@ import h5py
 from argparse import ArgumentParser
 import matplotlib.pyplot as plt
 import os
-import dask.dataframe as dd
+import pandas as pd
 import matplotlib.dates as mdates
 import time
 import sys
@@ -47,7 +47,7 @@ def plot_real_time(fig,axarr,processed_data,freqs,vmin,vmax,median_data,maxSampl
     if show_norm:
         ax=axarr[1]
         ax.cla()
-        ax.plot(freqs[:3:skipch]*1e-6,median_data.iloc[-1,:],'k') #plot only last acquired median
+        ax.plot(freqs[::skipch]*1e-6,median_data.iloc[-1,:],'k') #plot only last acquired median
         ax.set_xlabel("freq (MHz)")
     plt.pause(.3)
     
@@ -85,39 +85,35 @@ def main(argv):
         #if new processed data is present
         if(len(new_scaled_data_filenames) > 0):
             
-            new_processed_data = dd.read_csv([processed_folder+"/"+filename for filename in new_scaled_data_filenames])
+            processed_filepaths = [processed_folder+"/"+filename for filename in new_scaled_data_filenames]
+            new_processed_data = pd.concat(map(pd.read_csv, processed_filepaths), axis=0)
             
             if(all_processed_data is not None):
                 processed_data_list = [all_processed_data, new_processed_data]
             else:
                 processed_data_list = [new_processed_data]
                 
-            all_processed_data = dd.concat(processed_data_list, axis=0).compute() #for nice distributed/lazy operation, do not use compute, as this loads everything into memory!
-        
+            all_processed_data = pd.concat(processed_data_list, axis=0)
+            
         #if new median data is present    
         #Procedure is not needed for real-time plotting, as only the latest median is of interest. Still implemented for possible interactive plotting functionality later on.
         if(len(new_median_data_filenames) > 0):
         
-            new_median_data = dd.read_csv([median_folder+"/"+filename for filename in new_median_data_filenames])
-        
+            median_filepaths = [median_folder+"/"+filename for filename in new_median_data_filenames]
+            new_median_data = pd.concat(map(pd.read_csv, median_filepaths), axis=0)
+            
             if(all_median_data is not None):
                 median_data_list = [all_median_data, new_median_data]
             else:
                 median_data_list = [new_median_data]
             
-            all_median_data = dd.concat(median_data_list, axis=0).compute() #for nice distributed/lazy operation, do not use compute, as this loads everything into memory!
+            all_median_data = pd.concat(median_data_list, axis=0) #for nice distributed/lazy operation, do not use compute, as this loads everything into memory!
     
-        plot_real_time(fig,axarr,all_processed_data, metadata['freqs'],args.vmin,args.vmax,median_data=all_median_data,sampleSize=metadata[u'SAMPLING_TIME'],cmap=args.cmap,show_norm=args.show_normalization)
+        if((len(new_median_data_filenames) > 0) | (len(new_scaled_data_filenames) > 0)):
+            plot_real_time(fig,axarr,all_processed_data, metadata['freqs'],args.vmin,args.vmax,median_data=all_median_data,sampleSize=metadata[u'SAMPLING_TIME'],cmap=args.cmap,show_norm=args.show_normalization)
 
         
         time.sleep(args.wait_time)
-        #time.sleep(5)
-        
-        #check if new data is written
-        #if new files:
-        #  subsample in order to not get higher than max_res
-        #  plot image of concatenated datasets
-        #  Refresh webpage with image
 
 if __name__ == '__main__':
     main(sys.argv[1:])    
