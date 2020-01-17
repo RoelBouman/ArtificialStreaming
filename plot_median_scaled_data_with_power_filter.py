@@ -19,6 +19,8 @@ parser.add_argument('-a','--vmax', help='vmax of plot',dest='vmax',type=float,de
 parser.add_argument('-c','--cmap', help='matplotlib colormap',dest='cmap',default="viridis")
 parser.add_argument('-n','--show_normalization', help='plot normalization',dest='show_normalization', action='store_true')
 parser.add_argument('-w','--wait_time', help='wait time',dest='wait_time', default=5)
+parser.add_argument('-p','--show_power_filter', help='plot power filter',dest='show_power_filter', action='store_true')
+parser.add_argument('-t','--threshold', help='power filter threshold',dest='threshold', default=2e+17)
 
 def get_metadata_from_h5(h5file):
      #metadata=h5file.attrs[u'NOF_SUB_ARRAY_POINTINGS'] 
@@ -27,7 +29,7 @@ def get_metadata_from_h5(h5file):
      metadata=dict(metadata,**dict(h5file[h5file.visit(lambda x: x if 'BEAM' in x else None)].attrs))
      return metadata
 
-def plot_real_time(fig,axarr,processed_data,freqs,vmin,vmax,median_data,maxSamples=10000,skiptime=25,skipch=1,sampleSize=1./125.,cmap='Reds',show_norm=False):
+def plot_real_time(fig,axarr,processed_data,freqs,vmin,vmax,median_data,maxSamples=10000,skiptime=25,skipch=1,sampleSize=1./125.,cmap='Reds',show_norm=False, show_power_filter=False, threshold=2e+17):
     ax=axarr
     
     starttime_dt = parse(processed_data.iloc[0,-1])
@@ -41,14 +43,34 @@ def plot_real_time(fig,axarr,processed_data,freqs,vmin,vmax,median_data,maxSampl
     myextent=[0,processed_data.shape[0],freqs[0]*1e-6,freqs[::skipch][-1]*1e-6]
     myextent[0]=mdates.date2num(starttime_dt)
     myextent[1]=mdates.date2num(endtime_dt)
-    ax.imshow((processed_data.iloc[:,:-1]).T,origin='lower',interpolation='nearest',aspect='auto',vmin=vmin,vmax=vmax,extent=myextent,cmap=cmap)
+    
+    if show_power_filter:
+        skip_cols = -2
+    else:
+        skip_cols = -1
+    
+    ax.imshow((processed_data.iloc[:,:skip_cols]).T,origin='lower',interpolation='nearest',aspect='auto',vmin=vmin,vmax=vmax,extent=myextent,cmap=cmap)
     ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
     ax.set_ylabel("freq (MHz)")
-    if show_norm:
+    if show_power_filter:
         ax=axarr[1]
+        ax.cla()
+        float_dates = [mdates.date2num(parse(date)) for date in processed_data.iloc[:,-1]]
+        ax.plot(float_dates,processed_data.iloc[:,-2],'k') 
+        ax.axhline(y=threshold,color='r',linestyle='-')
+        ax.set_ylabel("Sum of Squares")
+        ax.set_xlim(mdates.date2num(starttime_dt), mdates.date2num(endtime_dt))
+        ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
+    if show_norm:
+        
+        if show_power_filter:
+            ax=axarr[2]
+        else:
+            ax=axarr[1]
         ax.cla()
         ax.plot(freqs[::skipch]*1e-6,median_data.iloc[-1,:],'k') #plot only last acquired median
         ax.set_xlabel("freq (MHz)")
+
     plt.pause(.3)
     
     
@@ -70,7 +92,7 @@ def main(argv):
     all_processed_data = None
     all_median_data = None
     
-    fig,axarr=plt.subplots(1+args.show_normalization,1)
+    fig,axarr=plt.subplots(1+args.show_normalization+args.show_power_filter,1)
     while(True):
         
         all_scaled_data_filenames = os.listdir(processed_folder)
@@ -110,7 +132,7 @@ def main(argv):
             all_median_data = pd.concat(median_data_list, axis=0) #for nice distributed/lazy operation, do not use compute, as this loads everything into memory!
     
         if((len(new_median_data_filenames) > 0) | (len(new_scaled_data_filenames) > 0)):
-            plot_real_time(fig,axarr,all_processed_data, metadata['freqs'],args.vmin,args.vmax,median_data=all_median_data,sampleSize=metadata[u'SAMPLING_TIME'],cmap=args.cmap,show_norm=args.show_normalization)
+            plot_real_time(fig,axarr,all_processed_data, metadata['freqs'],args.vmin,args.vmax,median_data=all_median_data,sampleSize=metadata[u'SAMPLING_TIME'],cmap=args.cmap,show_norm=args.show_normalization, show_power_filter=args.show_power_filter, threshold=args.threshold)
 
         
         time.sleep(args.wait_time)
