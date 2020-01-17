@@ -39,12 +39,8 @@ if __name__ == "__main__":
     .schema(beamformedSchema) \
     .csv("/opt/spark-data/beamformed") \
     .withWatermark("beamformedTimestamp", "5 seconds")
-
-  #test_columns = ("V0", "V1", "V2", "beamformedTimestamp")
-
-  #testDF = beamformedDF.select(*test_columns)
-    
-  def foreach_test_write(df, epoch_id):
+ 
+  def foreach_write(df, epoch_id):
     dataDF = df.select(variableNames).toPandas()
     bfTimestamp = df.select("beamformedTimestamp").toPandas()
     bfSecondsAfterMeasurement = df.select("secondAfterMeasurement").toPandas()
@@ -54,12 +50,14 @@ if __name__ == "__main__":
     median = dataDF.median() #transpose to save each median in a separate column
 
     scaledDF = dataDF.divide(median)  
+    
+    scaledDF["secondAfterMeasurement"] = bfSecondsAfterMeasurement 
     scaledDF["beamformedTimestamp"] = bfTimestamp 
-    scaledDF = scaledDF.sort_values("beamformedTimestamp")
+    scaledDF = scaledDF.sort_values("secondAfterMeasurement")
 
     scaledDF.to_csv("/opt/spark-results/median_scaled_data/scaled_data" + str(epoch_id) + ".csv", header=True, index=False, columns=writeColumns)
     median.to_frame().T.to_csv("/opt/spark-results/medians/median" + str(epoch_id) + ".csv", header=True, index=False)
   
-  query = beamformedDF.writeStream.foreachBatch(foreach_test_write).start()
+  query = beamformedDF.writeStream.foreachBatch(foreach_write).start()
               
   query.awaitTermination()                            
