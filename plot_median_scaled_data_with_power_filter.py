@@ -9,6 +9,7 @@ import time
 import sys
 from datetime import datetime as dt
 from dateutil.parser import parse
+import re
 
 parser = ArgumentParser("create dynspectrum plot from processed data");
 parser.add_argument('-r','--rawdata', nargs='+',help='rawdata file',dest="rawfile",required=True)
@@ -21,6 +22,25 @@ parser.add_argument('-n','--show_normalization', help='plot normalization',dest=
 parser.add_argument('-w','--wait_time', help='wait time',dest='wait_time', default=5)
 parser.add_argument('-p','--show_power_filter', help='plot power filter',dest='show_power_filter', action='store_true')
 parser.add_argument('-t','--threshold', help='power filter threshold',dest='threshold', default=2e+17)
+
+
+#https://stackoverflow.com/questions/5967500/how-to-correctly-sort-a-string-with-a-number-inside
+def atof(text):
+    try:
+        retval = float(text)
+    except ValueError:
+        retval = text
+    return retval
+
+#https://stackoverflow.com/questions/5967500/how-to-correctly-sort-a-string-with-a-number-inside
+def natural_keys(text):
+    '''
+    alist.sort(key=natural_keys) sorts in human order
+    http://nedbatchelder.com/blog/200712/human_sorting.html
+    (See Toothy's implementation in the comments)
+    float regex comes from https://stackoverflow.com/a/12643073/190597
+    '''
+    return [ atof(c) for c in re.split(r'[+-]?([0-9]+(?:[.][0-9]*)?|[.][0-9]+)', text) ]
 
 def get_metadata_from_h5(h5file):
      #metadata=h5file.attrs[u'NOF_SUB_ARRAY_POINTINGS'] 
@@ -98,8 +118,8 @@ def main(argv):
         all_scaled_data_filenames = os.listdir(processed_folder)
         all_median_data_filenames = os.listdir(median_folder)
         
-        new_scaled_data_filenames = sorted(list(set(all_scaled_data_filenames) - set(scaled_data_filenames)))
-        new_median_data_filenames = sorted(list(set(all_median_data_filenames) - set(median_data_filenames)))
+        new_scaled_data_filenames = sorted(list(set(all_scaled_data_filenames) - set(scaled_data_filenames)), key=natural_keys)
+        new_median_data_filenames = sorted(list(set(all_median_data_filenames) - set(median_data_filenames)), key=natural_keys)
         
         scaled_data_filenames = all_scaled_data_filenames
         median_data_filenames = all_median_data_filenames
