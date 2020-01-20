@@ -20,7 +20,7 @@ parser.add_argument('-fm','--docker_folder_metadata',help='docker folder for met
 parser.add_argument('-k','--skip_samples', help='number of samples to skip at the beginning',dest='skip_samples',type=int,default=0)
 parser.add_argument('-t','--skip_time', help='time sampling ratio (e.g. 25 for taking 1 in 25 samples, samples over all read samples)',dest='skip_time',type=int,default=25)
 parser.add_argument('-m','--max_samples', help='number of samples to read per streaming operation, must be higher than skip_time',dest='max_samples',type=int,default=10000)
-parser.add_argument('-w','--wait_time', help='time to wait between read/stream operations',dest='wait_time',type=int,default=0)
+parser.add_argument('-w','--wait_time', help='time in seconds to wait between read/stream operations',dest='wait_time',type=int,default=0)
 
 bytes_per_sample=4
 
