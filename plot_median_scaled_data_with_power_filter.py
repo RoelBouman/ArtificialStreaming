@@ -7,20 +7,19 @@ import pandas as pd
 import matplotlib.dates as mdates
 import time
 import sys
-from datetime import datetime as dt
 from dateutil.parser import parse
 import re
 
 parser = ArgumentParser("create dynspectrum plot from processed data");
-parser.add_argument('-r','--rawdata', nargs='+',help='rawdata file',dest="rawfile",required=True)
-#parser.add_argument('-p','--processedata', nargs='+',help='processed data folder without trailing frontslash',dest="processedfolder",required=True)
-#parser.add_argument('-m','--processedmedian', nargs='+',help='processed median folder without trailing frontslash',dest="medianfolder",required=True)
+parser.add_argument('-r','--rawdata',help='rawdata file',dest="rawfile",type=str,required=True)
+parser.add_argument('-p','--processedata',help='processed data folder without trailing frontslash',type=str,dest="processedfolder",required=True)
+parser.add_argument('-m','--processedmedian',help='processed median folder without trailing frontslash',type=str,dest="medianfolder",required=True)
 parser.add_argument('-i','--vmin', help='vmin of plot',dest='vmin',type=float,default=0.5)
 parser.add_argument('-a','--vmax', help='vmax of plot',dest='vmax',type=float,default=2)
 parser.add_argument('-c','--cmap', help='matplotlib colormap',dest='cmap',default="viridis")
 parser.add_argument('-n','--show_normalization', help='plot normalization',dest='show_normalization', action='store_true')
 parser.add_argument('-w','--wait_time', help='wait time',dest='wait_time', default=5)
-parser.add_argument('-p','--show_power_filter', help='plot power filter',dest='show_power_filter', action='store_true')
+parser.add_argument('-f','--show_power_filter', help='plot power filter',dest='show_power_filter', action='store_true')
 parser.add_argument('-t','--threshold', help='power filter threshold',dest='threshold', default=2e+17)
 
 
@@ -57,7 +56,7 @@ def plot_real_time(fig,axarr,processed_data,freqs,vmin,vmax,median_data,maxSampl
     
     fig.suptitle(starttime_dt.strftime("%m/%d/%Y"))
      
-    if show_norm:
+    if show_norm | show_power_filter:
         ax=ax[0]
     ax.cla()
     myextent=[0,processed_data.shape[0],freqs[0]*1e-6,freqs[::skipch][-1]*1e-6]
@@ -97,13 +96,10 @@ def plot_real_time(fig,axarr,processed_data,freqs,vmin,vmax,median_data,maxSampl
     
 def main(argv):
     args=parser.parse_args(argv)
-    metadata = get_metadata_from_h5(h5py.File(args.rawfile[0].replace('.raw','.h5')))
+    metadata = get_metadata_from_h5(h5py.File(args.rawfile.replace('.raw','.h5')))
     
-    #processed_folder = args.processedfolder
-    #median_folder = args.medianfolder
-    
-    processed_folder = "/mnt/spark-results/median_scaled_data"
-    median_folder = "/mnt/spark-results/medians"
+    processed_folder = args.processedfolder
+    median_folder = args.medianfolder
     
     #Initalize list of filenames 
     scaled_data_filenames = []
