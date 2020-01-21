@@ -43,9 +43,6 @@ if __name__ == "__main__":
       window("beamformedTimestamp", "5 seconds", "5 seconds") \
   ).agg(*exprs)
 
-  #df2 = beamformedDF.withColumn('norm_V1', col("V1")/col("med_V1"))
-
-
   # Start running the query that prints the running counts to the console     
   query = medianDF \
     .writeStream \
