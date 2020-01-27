@@ -41,8 +41,7 @@ if __name__ == "__main__":
     .csv("/opt/spark-data/beamformed") \
     .withWatermark("beamformedTimestamp", "5 seconds")
  
-  #[pow(a,2) for a in arr]
-  sumOfSquaresUdf = udf(lambda arr: sum(arr), DoubleType())
+  sumOfSquaresUdf = udf(lambda arr: sum(pow(a,2) for a in arr), DoubleType())
 
   beamformedDF = beamformedDF.withColumn('sumOfSquares', sumOfSquaresUdf(array(variableNames)))
   
