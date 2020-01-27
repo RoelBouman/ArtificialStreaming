@@ -37,7 +37,6 @@ if __name__ == "__main__":
 
   exprs = [expr('percentile_approx('+x+', 0.5)').alias('med_'+x) for x in beamformedDF.columns[:3]] 
 
-
   medianDF = beamformedDF.withWatermark("beamformedTimestamp", "5 seconds") \
     .groupBy(
       window("beamformedTimestamp", "5 seconds", "5 seconds") \

@@ -47,7 +47,7 @@ if __name__ == "__main__":
 
     writeColumns = variableNames + ["beamformedTimestamp"]
 
-    median = dataDF.median() #transpose to save each median in a separate column
+    median = dataDF.median()
 
     scaledDF = dataDF.divide(median)  
     
