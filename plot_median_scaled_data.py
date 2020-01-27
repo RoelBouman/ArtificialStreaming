@@ -100,29 +100,43 @@ def main(argv):
         #if new processed data is present
         if(len(new_scaled_data_filenames) > 0):
             
-            processed_filepaths = [processed_folder+"/"+filename for filename in new_scaled_data_filenames]
-            new_processed_data = pd.concat(map(pd.read_csv, processed_filepaths), axis=0)
-            
-            if(all_processed_data is not None):
-                processed_data_list = [all_processed_data, new_processed_data]
+            try:
+                processed_filepaths = [processed_folder+"/"+filename for filename in new_scaled_data_filenames]
+                new_processed_data = pd.concat(map(pd.read_csv, processed_filepaths), axis=0)
+
+            except pd.errors.EmptyDataError:
+                pass
             else:
-                processed_data_list = [new_processed_data]
+                                
+                if(all_processed_data is not None):
+                    processed_data_list = [all_processed_data, new_processed_data]
+                else:
+                    processed_data_list = [new_processed_data]
+                    
+                all_processed_data = pd.concat(processed_data_list, axis=0)
                 
-            all_processed_data = pd.concat(processed_data_list, axis=0)
+                scaled_data_filenames = all_scaled_data_filenames
+                
             
         #if new median data is present    
         #Procedure is not needed for real-time plotting, as only the latest median is of interest. Still implemented for possible interactive plotting functionality later on.
         if(len(new_median_data_filenames) > 0):
-        
-            median_filepaths = [median_folder+"/"+filename for filename in new_median_data_filenames]
-            new_median_data = pd.concat(map(pd.read_csv, median_filepaths), axis=0)
             
-            if(all_median_data is not None):
-                median_data_list = [all_median_data, new_median_data]
+            try:
+                median_filepaths = [median_folder+"/"+filename for filename in new_median_data_filenames]
+                new_median_data = pd.concat(map(pd.read_csv, median_filepaths), axis=0)
+
+            except pd.errors.EmptyDataError:
+                pass
             else:
-                median_data_list = [new_median_data]
-            
-            all_median_data = pd.concat(median_data_list, axis=0) #for nice distributed/lazy operation, do not use compute, as this loads everything into memory!
+                                
+                if(all_median_data is not None):
+                    median_data_list = [all_median_data, new_median_data]
+                else:
+                    median_data_list = [new_median_data]
+                
+                all_median_data = pd.concat(median_data_list, axis=0)
+                median_data_filenames = all_median_data_filenames
     
         if((len(new_median_data_filenames) > 0) | (len(new_scaled_data_filenames) > 0)):
             plot_real_time(fig,axarr,all_processed_data, metadata['freqs'],args.vmin,args.vmax,median_data=all_median_data,sampleSize=metadata[u'SAMPLING_TIME'],cmap=args.cmap,show_norm=args.show_normalization)

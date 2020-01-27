@@ -20,7 +20,7 @@ parser.add_argument('-c','--cmap', help='matplotlib colormap',dest='cmap',defaul
 parser.add_argument('-n','--show_normalization', help='plot normalization',dest='show_normalization', action='store_true')
 parser.add_argument('-w','--wait_time', help='wait time',dest='wait_time', default=5)
 parser.add_argument('-f','--show_power_filter', help='plot power filter',dest='show_power_filter', action='store_true')
-parser.add_argument('-t','--threshold', help='power filter threshold',dest='threshold', default=2e+17)
+parser.add_argument('-t','--threshold', help='power filter threshold',dest='threshold', default=1e+32)
 
 
 #https://stackoverflow.com/questions/5967500/how-to-correctly-sort-a-string-with-a-number-inside
@@ -78,6 +78,7 @@ def plot_real_time(fig,axarr,processed_data,freqs,vmin,vmax,median_data,maxSampl
         ax.plot(float_dates,processed_data.iloc[:,-2],'k') 
         ax.axhline(y=threshold,color='r',linestyle='-')
         ax.set_ylabel("Sum of Squares")
+        ax.set_yscale("log")
         ax.set_xlim(mdates.date2num(starttime_dt), mdates.date2num(endtime_dt))
         ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
     if show_norm:
@@ -123,29 +124,43 @@ def main(argv):
         #if new processed data is present
         if(len(new_scaled_data_filenames) > 0):
             
-            processed_filepaths = [processed_folder+"/"+filename for filename in new_scaled_data_filenames]
-            new_processed_data = pd.concat(map(pd.read_csv, processed_filepaths), axis=0)
-            
-            if(all_processed_data is not None):
-                processed_data_list = [all_processed_data, new_processed_data]
+            try:
+                processed_filepaths = [processed_folder+"/"+filename for filename in new_scaled_data_filenames]
+                new_processed_data = pd.concat(map(pd.read_csv, processed_filepaths), axis=0)
+
+            except pd.errors.EmptyDataError:
+                pass
             else:
-                processed_data_list = [new_processed_data]
+                                
+                if(all_processed_data is not None):
+                    processed_data_list = [all_processed_data, new_processed_data]
+                else:
+                    processed_data_list = [new_processed_data]
+                    
+                all_processed_data = pd.concat(processed_data_list, axis=0)
                 
-            all_processed_data = pd.concat(processed_data_list, axis=0)
+                scaled_data_filenames = all_scaled_data_filenames
+                
             
         #if new median data is present    
         #Procedure is not needed for real-time plotting, as only the latest median is of interest. Still implemented for possible interactive plotting functionality later on.
         if(len(new_median_data_filenames) > 0):
-        
-            median_filepaths = [median_folder+"/"+filename for filename in new_median_data_filenames]
-            new_median_data = pd.concat(map(pd.read_csv, median_filepaths), axis=0)
             
-            if(all_median_data is not None):
-                median_data_list = [all_median_data, new_median_data]
+            try:
+                median_filepaths = [median_folder+"/"+filename for filename in new_median_data_filenames]
+                new_median_data = pd.concat(map(pd.read_csv, median_filepaths), axis=0)
+
+            except pd.errors.EmptyDataError:
+                pass
             else:
-                median_data_list = [new_median_data]
-            
-            all_median_data = pd.concat(median_data_list, axis=0) #for nice distributed/lazy operation, do not use compute, as this loads everything into memory!
+                                
+                if(all_median_data is not None):
+                    median_data_list = [all_median_data, new_median_data]
+                else:
+                    median_data_list = [new_median_data]
+                
+                all_median_data = pd.concat(median_data_list, axis=0)
+                median_data_filenames = all_median_data_filenames
     
         if((len(new_median_data_filenames) > 0) | (len(new_scaled_data_filenames) > 0)):
             plot_real_time(fig,axarr,all_processed_data, metadata['freqs'],args.vmin,args.vmax,median_data=all_median_data,sampleSize=metadata[u'SAMPLING_TIME'],cmap=args.cmap,show_norm=args.show_normalization, show_power_filter=args.show_power_filter, threshold=args.threshold)
