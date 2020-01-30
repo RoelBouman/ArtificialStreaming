@@ -76,7 +76,7 @@ measurement_index = 102984 #Which measurement should streaming start with?
 # 18*60*(10**6)/time_delta.microseconds
 # Out[172]: 102994.46881556361 
 # with 102984 first batch should have weather from hour 11, second batch from hour 12
-index_delta = 10 #How many measurements should be sent each second
+index_delta = 100 #How many measurements should be sent each second
 time_delta = timedelta(seconds=h5["/SUB_ARRAY_POINTING_000/BEAM_000/COORDINATES/COORDINATE_0"].attrs["INCREMENT"]) #The time between two consecutive measurements
 
 
